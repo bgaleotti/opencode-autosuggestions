@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4
 
 - Better suggestions, measured with the new prompt eval (`eval/`) on Claude Haiku and GPT Luna:
   - The model now sees which files each tool touched, so suggestions name them ("add tests for slugify in

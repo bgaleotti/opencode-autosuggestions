@@ -120,6 +120,14 @@ bun run eval:compare before after # summary, and every suggestion side by side
 
 Results go to `eval/results/`, which is not committed.
 
+### Releasing
+
+1. Bump `version` in `package.json` and add its section to `CHANGELOG.md`.
+2. Commit, then push a matching tag: `git tag v0.1.5 && git push origin v0.1.5`.
+
+The release workflow runs the checks, publishes to npm, and creates the GitHub release with the CHANGELOG section as
+notes.
+
 Point `cli.json` at your checkout to try it:
 
 ```json
