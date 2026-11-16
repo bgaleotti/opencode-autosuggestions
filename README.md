@@ -84,7 +84,8 @@ A model picked from the palette overrides the `model` option. Setting `followUps
 
 ## Cost
 
-Each suggestion is one short model call: one per finished turn, and one per pause while typing. To make fewer calls,
+Each suggestion is one short model call: one per finished turn, and one per pause while typing. A call is cancelled as
+soon as its result is no longer needed, for example when you keep typing or send a new prompt. To make fewer calls,
 turn either one off with `"followUps": false` or `"autocomplete": false`, or from the command palette.
 
 ## How it works

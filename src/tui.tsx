@@ -110,9 +110,7 @@ export default Plugin.define({
     const maxChars = options.maxChars ?? 6000
 
     const suggestions = new Map<string, Suggestion>()
-    const generations = new Map<string, number>()
     let applied: { editor: Editor; original: unknown; text: string } | undefined
-    let generation = 0
 
     const typingDelay = options.autocompleteDelay ?? 600
     const typingOn = () => options.autocomplete !== false && settings.autocomplete !== false
@@ -121,7 +119,21 @@ export default Plugin.define({
     const [completion, setCompletion] = createSignal<Completion>()
     let typed = ""
     let typingTimer: ReturnType<typeof setTimeout> | undefined
-    let typingRequest = 0
+    // In-flight model calls, aborted as soon as their result can no longer be shown
+    // so a stale suggestion is not paid for.
+    let typingCall: AbortController | undefined
+    const followUpCalls = new Map<string, AbortController>()
+
+    const cancelTyping = () => {
+      clearTimeout(typingTimer)
+      typingCall?.abort()
+      typingCall = undefined
+    }
+
+    const cancelFollowUp = (sessionID: string) => {
+      followUpCalls.get(sessionID)?.abort()
+      followUpCalls.delete(sessionID)
+    }
 
     // Only the main composer: dialogs have their own focused editors, and the
     // composer marks itself with `role: "prompt"` (status "SHELL" in shell mode).
@@ -162,8 +174,7 @@ export default Plugin.define({
       target.cursorOffset === undefined || target.cursorOffset >= [...text].length
 
     const onTyped = (text: string) => {
-      clearTimeout(typingTimer)
-      typingRequest++
+      cancelTyping()
       const current = completion()
       // Typing the next characters of the completion keeps the rest of it.
       if (current && text.length > current.base.length && text.startsWith(current.base)) {
@@ -306,11 +317,12 @@ export default Plugin.define({
       return `${name ?? `${ref.providerID}/${ref.id}`}${ref.variant ? ` (${ref.variant})` : ""}`
     }
 
-    const complete = async (prompt: string, sessionID?: string) => {
+    const complete = async (prompt: string, sessionID: string | undefined, signal: AbortSignal) => {
       const client = context.client as any
       const generateText = client.experimental?.generate?.text ?? client.generate?.text
       if (typeof generateText !== "function") return
       const available = await models(sessionID)
+      if (signal.aborted) return
       const picks = pickModels(available, sessionID)
       const key = `${choice()}|${picks.map((model) => `${model.providerID}/${model.id}`).join(",")}`
       const cached = working.get(key)
@@ -319,10 +331,11 @@ export default Plugin.define({
       for (const ref of refs) {
         const model = { providerID: ref.providerID, id: ref.id, ...(ref.variant ? { variant: ref.variant } : {}) }
         let failure: unknown
-        const response = await generateText({ prompt, model }).catch((error: unknown) => {
+        const response = await generateText({ prompt, model }, { signal }).catch((error: unknown) => {
           failure = error
           return undefined
         })
+        if (signal.aborted) return
         const text = response?.data?.text ?? response?.text
         if (typeof text !== "string") {
           // Only settings errors are permanent; network or rate-limit errors may pass next time.
@@ -337,37 +350,44 @@ export default Plugin.define({
     }
 
     const generate = async (sessionID: string) => {
-      const id = ++generation
-      generations.set(sessionID, id)
+      cancelFollowUp(sessionID)
+      const call = new AbortController()
+      followUpCalls.set(sessionID, call)
       suggestions.delete(sessionID)
       try {
         await context.data.session.message.sync(sessionID)
         const conversation = transcript(sessionID)
-        if (!conversation) return
+        if (!conversation || call.signal.aborted) return
         const prompt = `${INSTRUCTIONS}\n\n<conversation>\n${conversation}\n</conversation>\n\nNext user message:`
-        const raw = await complete(prompt, sessionID)
-        if (generations.get(sessionID) !== id) return
+        const raw = await complete(prompt, sessionID, call.signal)
+        if (call.signal.aborted) return
         const text = clean(raw ?? "")
         if (!text) return
         suggestions.set(sessionID, { text, dismissed: false })
         sync()
       } catch {
         // A failed suggestion is not worth interrupting the user for.
+      } finally {
+        if (followUpCalls.get(sessionID) === call) followUpCalls.delete(sessionID)
       }
     }
 
     const completeTyping = async (text: string) => {
-      const request = ++typingRequest
+      typingCall?.abort()
+      const call = new AbortController()
+      typingCall = call
       try {
         const sessionID = routeSessionID()
         const conversation = sessionID ? transcript(sessionID, 6) : ""
         const prompt = `${TYPING_INSTRUCTIONS}\n\n<conversation>\n${conversation || "(new conversation)"}\n</conversation>\n\n<unfinished>\n${text}\n</unfinished>\n\nComplete message:`
-        const raw = await complete(prompt, sessionID)
-        if (request !== typingRequest || typed !== text) return
+        const raw = await complete(prompt, sessionID, call.signal)
+        if (call.signal.aborted || typed !== text) return
         const rest = continuation(text, raw ?? "")
         if (rest) setCompletion({ base: text, rest })
       } catch {
         // Same as above: no completion this time.
+      } finally {
+        if (typingCall === call) typingCall = undefined
       }
     }
 
@@ -378,7 +398,7 @@ export default Plugin.define({
 
     const stops = [
       context.data.on("session.execution.started", (event) => {
-        generations.delete(event.data.sessionID)
+        cancelFollowUp(event.data.sessionID)
         suggestions.delete(event.data.sessionID)
         sync()
       }),
@@ -416,8 +436,7 @@ export default Plugin.define({
 
     const dismiss = () => {
       if (completion()) {
-        clearTimeout(typingTimer)
-        typingRequest++
+        cancelTyping()
         setCompletion(undefined)
         return
       }
@@ -472,6 +491,8 @@ export default Plugin.define({
               draft.followUps = draft.followUps === false
             })
             if (!followUpsOn()) {
+              followUpCalls.forEach((call) => call.abort())
+              followUpCalls.clear()
               suggestions.clear()
               restore()
             }
@@ -490,7 +511,10 @@ export default Plugin.define({
             await updateSettings((draft) => {
               draft.autocomplete = draft.autocomplete === false
             })
-            if (!typingOn()) setCompletion(undefined)
+            if (!typingOn()) {
+              cancelTyping()
+              setCompletion(undefined)
+            }
             context.ui.toast.show({
               message: `Autocomplete ${typingOn() ? "on" : "off"}`,
               variant: "info",
@@ -623,7 +647,9 @@ export default Plugin.define({
 
     return () => {
       clearInterval(timer)
-      clearTimeout(typingTimer)
+      cancelTyping()
+      followUpCalls.forEach((call) => call.abort())
+      followUpCalls.clear()
       if (typeof unregisterSlot === "function") unregisterSlot()
       stops.forEach((stop) => stop())
       restore()
