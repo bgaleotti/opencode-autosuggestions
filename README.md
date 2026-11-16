@@ -106,6 +106,20 @@ bun run build
 
 The code that depends on OpenCode internals is in `src/host.ts`; the rest is plain logic with tests in `test/`.
 
+### Prompt evals
+
+`eval/` runs a set of English and Spanish conversations through the prompts, so prompt changes can be compared
+instead of guessed. It calls models through your local OpenCode service, so it uses your configured providers:
+
+```sh
+bun run eval before --samples 2   # save a run with the current prompts
+# change src/prompts.ts
+bun run eval after --samples 2
+bun run eval:compare before after # summary, and every suggestion side by side
+```
+
+Results go to `eval/results/`, which is not committed.
+
 Point `cli.json` at your checkout to try it:
 
 ```json

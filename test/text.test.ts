@@ -28,6 +28,7 @@ describe("parseFollowUp", () => {
     expect(parseFollowUp('  "yes, add the tests"\nsecond line')).toBe("yes, add the tests")
     expect(parseFollowUp("Next user message: run it")).toBe("run it")
     expect(parseFollowUp("User: commit it")).toBe("commit it")
+    expect(parseFollowUp("update the mock in `profile.test.ts`")).toBe("update the mock in `profile.test.ts`")
   })
 
   test("returns nothing for NONE, empty, or overlong replies", () => {
@@ -42,6 +43,7 @@ describe("parseCompletion", () => {
   test("returns what follows the unfinished text", () => {
     expect(parseCompletion("sure but use pyt", "sure but use pytest for the tests")).toBe("est for the tests")
     expect(parseCompletion("add a health check", "add a health check endpoint\n")).toBe(" endpoint")
+    expect(parseCompletion("rename it to", '"rename it to `fetchUser`"')).toBe(" `fetchUser`")
   })
 
   test("accepts a reply that echoes only the last line of a multi-line prompt", () => {

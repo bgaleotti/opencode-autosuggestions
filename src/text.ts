@@ -3,7 +3,8 @@
 const MAX_FOLLOW_UP_CHARS = 200
 const MAX_COMPLETION_CHARS = 160
 const MIN_COMPLETION_INPUT = 3
-const QUOTES = /^["'`“”]+|["'`“”]+$/g
+// Quotes wrapping the whole reply. Backticks are left alone: they belong to code in the message.
+const WRAPPING_QUOTES = /^["'“”]+(.*?)["'“”]+$/s
 
 export function clip(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}…` : text
@@ -33,7 +34,7 @@ export function parseFollowUp(raw: string) {
   if (!line) return ""
   const text = line
     .replace(/^(next user message|user)\s*:\s*/i, "")
-    .replace(QUOTES, "")
+    .replace(WRAPPING_QUOTES, "$1")
     .trim()
   if (!text || /^none\.?$/i.test(text)) return ""
   return text.length > MAX_FOLLOW_UP_CHARS ? "" : text
@@ -45,7 +46,7 @@ export function parseFollowUp(raw: string) {
  */
 export function parseCompletion(text: string, raw: string) {
   const line = raw.split("\n").find((value) => value.trim()) ?? ""
-  const full = line.replace(/^complete message\s*:\s*/i, "").replace(QUOTES, "")
+  const full = line.replace(/^complete message\s*:\s*/i, "").replace(WRAPPING_QUOTES, "$1")
   const trimmed = full.trim()
   if (!trimmed || /^none\.?$/i.test(trimmed)) return ""
   if (/(^|\s)NONE\.?$/.test(trimmed) && !/(^|\s)NONE\.?$/.test(text.trim())) return ""

@@ -14,13 +14,42 @@ describe("formatTranscript", () => {
       user("create hello.py"),
       assistant([
         { type: "tool", id: "t1", name: "write", state: { status: "completed", output: "secret output" } },
-        { type: "tool", id: "t2", name: "write" },
+        { type: "tool", id: "t2", name: "write", state: { status: "streaming", input: '{"pa' } },
         { type: "reasoning", text: "thinking" },
         { type: "text", text: "Created hello.py. Want tests?" },
       ]),
     ]
     expect(formatTranscript(messages, limits)).toBe(
       "USER: create hello.py\n\nASSISTANT (used tools: write)\n\nASSISTANT: Created hello.py. Want tests?",
+    )
+  })
+
+  test("names the files that file tools touched, relative to the session directory", () => {
+    const messages = [
+      assistant([
+        { type: "tool", id: "t1", name: "read", state: { status: "completed", input: { path: "/repo/src/app.ts" } } },
+        { type: "tool", id: "t2", name: "edit", state: { status: "completed", input: { path: "/repo/src/app.ts" } } },
+        {
+          type: "tool",
+          id: "t3",
+          name: "patch",
+          state: {
+            status: "completed",
+            input: { patchText: "*** Begin Patch\n*** Add File: /repo/test/app.test.ts\n+x\n*** End Patch" },
+          },
+        },
+        { type: "tool", id: "t4", name: "shell", state: { status: "completed", input: { command: "npm test" } } },
+        {
+          type: "tool",
+          id: "t5",
+          name: "read",
+          state: { status: "completed", input: { path: "/elsewhere/lib/x.ts" } },
+        },
+        { type: "text", text: "Done." },
+      ]),
+    ]
+    expect(formatTranscript(messages, { ...limits, directory: "/repo" })).toBe(
+      "ASSISTANT (used tools: read src/app.ts, edit src/app.ts, patch test/app.test.ts, shell, read lib/x.ts)\n\nASSISTANT: Done.",
     )
   })
 

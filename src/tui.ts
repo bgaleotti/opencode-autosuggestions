@@ -149,7 +149,7 @@ export default Plugin.define({
       try {
         await context.data.session.message.sync(sessionID)
         const messages = context.data.session.message.list(sessionID) ?? []
-        const conversation = formatTranscript(messages, options)
+        const conversation = formatTranscript(messages, { ...options, directory: locationOf(sessionID).directory })
         if (!conversation || call.signal.aborted) return
         const raw = await generateText(followUpPrompt(conversation), sessionID, call.signal)
         if (raw === undefined || call.signal.aborted) return
@@ -189,7 +189,11 @@ export default Plugin.define({
       try {
         const sessionID = currentSessionID()
         const messages = sessionID ? (context.data.session.message.list(sessionID) ?? []) : []
-        const conversation = formatTranscript(messages, { ...options, maxMessages: COMPLETION_CONTEXT_MESSAGES })
+        const conversation = formatTranscript(messages, {
+          ...options,
+          maxMessages: COMPLETION_CONTEXT_MESSAGES,
+          directory: locationOf(sessionID).directory,
+        })
         const raw = await generateText(completionPrompt(conversation, text), sessionID, call.signal)
         if (raw === undefined || call.signal.aborted || promptText !== text) return
         const rest = parseCompletion(text, raw)

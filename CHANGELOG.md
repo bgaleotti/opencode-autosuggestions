@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Better suggestions, measured with the new prompt eval (`eval/`) on Claude Haiku and GPT Luna:
+  - The model now sees which files each tool touched, so suggestions name them ("add tests for slugify in
+    utils.py").
+  - Follow-ups no longer ask again for something the agent said it cannot do, answer in the agent's voice, or
+    suggest running tests in projects without tests; they follow Spanish voseo.
+  - Completions are shorter (1 to 8 words) and no longer include notes about the completion itself.
+  - Both prompts include a few examples and treat the conversation as data, not instructions.
+- Backticks at the ends of a suggestion are kept, so code like `` `fetchUser` `` is not cut.
+
 ## 0.1.3
 
 - Remember model and reasoning-level combinations the account rejects. Errors worded "isn't available" were not
