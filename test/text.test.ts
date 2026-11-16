@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { clip, clipEnd, fitSuggestion, isCompletable, parseCompletion, parseFollowUp } from "../src/text"
+import { clip, clipEnd, fitSuggestion, isCompletable, parseCompletion, parseFollowUp, splitNextWord } from "../src/text"
 
 describe("clip", () => {
   test("keeps short text and cuts long text at the end or the start", () => {
@@ -72,5 +72,17 @@ describe("fitSuggestion", () => {
     expect(fitSuggestion("anything", "  ⇥ tab", 10)).toBe("")
     expect(fitSuggestion("anything", "", 1)).toBe("")
     expect(fitSuggestion("anything", "", 4)).toBe("any…")
+  })
+})
+
+describe("splitNextWord", () => {
+  test("takes the next word with the spaces before it", () => {
+    expect(splitNextWord(" returns the service status")).toEqual({ word: " returns", rest: " the service status" })
+    expect(splitNextWord("oint that returns")).toEqual({ word: "oint", rest: " that returns" })
+  })
+
+  test("takes everything when one word is left", () => {
+    expect(splitNextWord(" status")).toEqual({ word: " status", rest: "" })
+    expect(splitNextWord(" status  ")).toEqual({ word: " status  ", rest: "" })
   })
 })

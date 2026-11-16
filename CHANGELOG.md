@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5
+
+- Accept a suggestion one word at a time with **Ctrl+→** (option `acceptWordKey`). The rest stays as ghost text.
+- No automatic follow-up after a turn that ended in an error or was cut off, or while a queued prompt, a permission
+  request, or a question is waiting for you. A follow-up already on screen hides while one of those is pending.
+  "Suggest follow-up now" still works any time.
+
 ## 0.1.4
 
 - Better suggestions, measured with the new prompt eval (`eval/`) on Claude Haiku and GPT Luna:

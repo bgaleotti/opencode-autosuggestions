@@ -68,3 +68,13 @@ export function fitSuggestion(body: string, hint: string, room: number) {
   if (body.length + hint.length <= room) return `${body}${hint}`
   return `${body.slice(0, room - hint.length - 1)}…${hint}`
 }
+
+/**
+ * Splits off the next word of a suggestion, with the spaces before it, for accepting one word at a time.
+ * Returns the whole text as `word` when only one word is left.
+ */
+export function splitNextWord(text: string) {
+  const word = /^\s*\S+/.exec(text)?.[0] ?? text
+  const rest = text.slice(word.length)
+  return rest.trim() ? { word, rest } : { word: text, rest: "" }
+}

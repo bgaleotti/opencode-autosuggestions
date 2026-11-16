@@ -23,8 +23,9 @@ import {
 import { resolveOptions } from "./options"
 import { createOverlay } from "./overlay"
 import { completionPrompt, followUpPrompt } from "./prompts"
-import { fitSuggestion, isCompletable, parseCompletion, parseFollowUp } from "./text"
+import { fitSuggestion, isCompletable, parseCompletion, parseFollowUp, splitNextWord } from "./text"
 import { formatTranscript, lastAssistantModel } from "./transcript"
+import { endedCleanly } from "./turn"
 
 // Two kinds of suggestions share one ghost-text layer:
 // - Follow-ups: after a turn, the likely next prompt, drawn in the empty prompt.
@@ -125,10 +126,16 @@ export default Plugin.define({
     const followUps = new Map<string, FollowUp>()
     const followUpCalls = new Map<string, AbortController>()
 
+    /** Prompts already queued, or a permission request or question waiting for an answer. */
+    const waitingOnUser = (sessionID: string) =>
+      (context.data.session.pending.list(sessionID) ?? []).length > 0 ||
+      (context.data.session.permission.list(sessionID) ?? []).length > 0 ||
+      (context.data.session.form.list(sessionID) ?? []).length > 0
+
     const visibleFollowUp = () => {
       const sessionID = currentSessionID()
       const followUp = settings.enabled && sessionID ? followUps.get(sessionID) : undefined
-      return followUp && !followUp.dismissed ? followUp : undefined
+      return followUp && !followUp.dismissed && sessionID && !waitingOnUser(sessionID) ? followUp : undefined
     }
 
     const cancelFollowUp = (sessionID: string) => {
@@ -141,7 +148,8 @@ export default Plugin.define({
       followUpCalls.clear()
     }
 
-    const requestFollowUp = async (sessionID: string) => {
+    /** `automatic` is a follow-up after a turn; those are skipped when a suggestion makes no sense. */
+    const requestFollowUp = async (sessionID: string, automatic: boolean) => {
       cancelFollowUp(sessionID)
       const call = new AbortController()
       followUpCalls.set(sessionID, call)
@@ -149,6 +157,8 @@ export default Plugin.define({
       try {
         await context.data.session.message.sync(sessionID)
         const messages = context.data.session.message.list(sessionID) ?? []
+        if (automatic && !endedCleanly(messages)) return log("no follow-up: the turn did not end normally")
+        if (automatic && waitingOnUser(sessionID)) return log("no follow-up: waiting on the user already")
         const conversation = formatTranscript(messages, { ...options, directory: locationOf(sessionID).directory })
         if (!conversation || call.signal.aborted) return
         const raw = await generateText(followUpPrompt(conversation), sessionID, call.signal)
@@ -250,6 +260,26 @@ export default Plugin.define({
       followUps.delete(sessionID)
     }
 
+    /** Accepts the next word only. What is left stays as a completion, so Tab or this key keep going. */
+    const acceptWord = () => {
+      const editor = focusedPrompt(context.renderer)
+      if (!editor) return false
+      const current = visibleCompletion(editor)
+      const sessionID = currentSessionID()
+      const followUp = !current && editor.plainText === "" ? visibleFollowUp() : undefined
+      if (!current && !followUp) return false
+      const base = current ? current.base : ""
+      const { word, rest } = splitNextWord(current ? current.rest : (followUp?.text ?? ""))
+      if (followUp && sessionID) {
+        placeholder.restore()
+        followUps.delete(sessionID)
+      }
+      cancelCompletion()
+      promptText = base + word
+      setCompletion(rest ? { base: promptText, rest } : undefined)
+      setPromptText(editor, promptText)
+    }
+
     const dismiss = () => {
       const editor = focusedPrompt(context.renderer)
       if (!editor) return false
@@ -300,7 +330,7 @@ export default Plugin.define({
       }),
       context.data.on("session.execution.succeeded", (event) => {
         if (!settings.enabled || !followUpsOn() || !isRootSession(event.data.sessionID)) return
-        void requestFollowUp(event.data.sessionID)
+        void requestFollowUp(event.data.sessionID, true)
       }),
     ]
 
@@ -316,6 +346,13 @@ export default Plugin.define({
           group: "Autosuggestions",
           bind: options.acceptKey,
           run: accept,
+        },
+        {
+          id: "autosuggestions.accept.word",
+          title: "Accept next word of suggestion",
+          group: "Autosuggestions",
+          bind: options.acceptWordKey,
+          run: acceptWord,
         },
         {
           id: "autosuggestions.dismiss",
@@ -410,11 +447,11 @@ export default Plugin.define({
           palette: true,
           run: () => {
             const sessionID = currentSessionID()
-            if (sessionID) void requestFollowUp(sessionID)
+            if (sessionID) void requestFollowUp(sessionID, false)
           },
         },
       ],
-      bindings: ["autosuggestions.accept", "autosuggestions.dismiss"],
+      bindings: ["autosuggestions.accept", "autosuggestions.accept.word", "autosuggestions.dismiss"],
     }))
 
     const timer = setInterval(tick, TICK_MS)

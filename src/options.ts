@@ -8,6 +8,7 @@ export interface Options {
   readonly autocomplete: boolean
   readonly autocompleteDelay: number
   readonly acceptKey: string
+  readonly acceptWordKey: string
   readonly dismissKey: string
   readonly maxMessages: number
   readonly maxChars: number
@@ -20,6 +21,7 @@ export const DEFAULT_OPTIONS: Options = {
   autocomplete: true,
   autocompleteDelay: 600,
   acceptKey: "tab",
+  acceptWordKey: "ctrl+right",
   dismissKey: "escape",
   maxMessages: 8,
   maxChars: 6000,
@@ -43,6 +45,7 @@ export function resolveOptions(raw: Readonly<Record<string, unknown>> | undefine
     autocomplete: boolean("autocomplete"),
     autocompleteDelay: number("autocompleteDelay"),
     acceptKey: string("acceptKey"),
+    acceptWordKey: string("acceptWordKey"),
     dismissKey: string("dismissKey"),
     maxMessages: number("maxMessages"),
     maxChars: number("maxChars"),
