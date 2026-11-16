@@ -26,8 +26,9 @@ type Options = {
   dismissKey?: string
   maxMessages?: number
   maxChars?: number
-  typing?: boolean
-  typingDelay?: number
+  followUps?: boolean
+  autocomplete?: boolean
+  autocompleteDelay?: number
 }
 
 type Editor = {
@@ -99,7 +100,7 @@ export default Plugin.define({
     // `model` is "" until a model is picked from the palette; then it overrides
     // the `model` option from cli.json. "auto" chooses from the session's provider.
     const [settings, updateSettings] = context.storage.store("settings", {
-      initial: { enabled: true, model: "", typing: true },
+      initial: { enabled: true, model: "", followUps: true, autocomplete: true },
     })
     const choice = () => settings.model || options.model || AUTO
     const working = new Map<string, ModelRef>()
@@ -113,8 +114,10 @@ export default Plugin.define({
     let applied: { editor: Editor; original: unknown; text: string } | undefined
     let generation = 0
 
-    const typingDelay = options.typingDelay ?? 600
-    const typingOn = () => options.typing !== false && settings.typing !== false
+    const typingDelay = options.autocompleteDelay ?? 600
+    const typingOn = () => options.autocomplete !== false && settings.autocomplete !== false
+    // Only the automatic suggestion after each turn; "Suggest follow-up now" still works.
+    const followUpsOn = () => options.followUps !== false && settings.followUps !== false
     const [completion, setCompletion] = createSignal<Completion>()
     let typed = ""
     let typingTimer: ReturnType<typeof setTimeout> | undefined
@@ -380,7 +383,7 @@ export default Plugin.define({
         sync()
       }),
       context.data.on("session.execution.succeeded", (event) => {
-        if (!settings.enabled || !isRoot(event.data.sessionID)) return
+        if (!settings.enabled || !followUpsOn() || !isRoot(event.data.sessionID)) return
         void generate(event.data.sessionID)
       }),
     ]
@@ -460,17 +463,36 @@ export default Plugin.define({
           },
         },
         {
-          id: "autosuggestions.typing",
-          title: "Toggle suggestions while typing",
+          id: "autosuggestions.followups",
+          title: "Toggle follow-up suggestions",
           group: "Prompt",
           palette: true,
           run: async () => {
             await updateSettings((draft) => {
-              draft.typing = draft.typing === false
+              draft.followUps = draft.followUps === false
+            })
+            if (!followUpsOn()) {
+              suggestions.clear()
+              restore()
+            }
+            context.ui.toast.show({
+              message: `Follow-up suggestions ${followUpsOn() ? "on" : "off"}`,
+              variant: "info",
+            })
+          },
+        },
+        {
+          id: "autosuggestions.autocomplete",
+          title: "Toggle autocomplete",
+          group: "Prompt",
+          palette: true,
+          run: async () => {
+            await updateSettings((draft) => {
+              draft.autocomplete = draft.autocomplete === false
             })
             if (!typingOn()) setCompletion(undefined)
             context.ui.toast.show({
-              message: `Suggestions while typing ${typingOn() ? "on" : "off"}`,
+              message: `Autocomplete ${typingOn() ? "on" : "off"}`,
               variant: "info",
             })
           },
@@ -522,7 +544,7 @@ export default Plugin.define({
         },
         {
           id: "autosuggestions.generate",
-          title: "Suggest next prompt",
+          title: "Suggest follow-up now",
           group: "Prompt",
           palette: true,
           run: () => {

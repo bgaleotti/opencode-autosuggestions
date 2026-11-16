@@ -2,9 +2,9 @@
 
 Copilot-style prompt autosuggestions for the [OpenCode](https://opencode.ai) TUI.
 
-- **Next prompt:** when a turn finishes, a cheap model reads the last few messages and suggests what you will probably
+- **Follow-ups:** when a turn finishes, a cheap model reads the last few messages and suggests what you will probably
   type next, as ghost text in the empty prompt.
-- **While typing:** pause for a moment and it suggests how to finish your message, right after the cursor.
+- **Autocomplete:** pause while typing and it suggests how to finish your message, right after the cursor.
 
 ```
 ┃  Want me to add tests for this file?
@@ -54,8 +54,9 @@ All in the command palette (`Ctrl+P`):
 | ------------------------------- | -------------------------------------------------- |
 | Choose suggestion model         | Auto, or any model you have                        |
 | Toggle suggested prompts        | Turns the plugin on or off                         |
-| Toggle suggestions while typing | Turns only the while-typing completions on or off  |
-| Suggest next prompt             | Generates a next-prompt suggestion now             |
+| Toggle follow-up suggestions    | Turns only the suggestion after each turn on or off |
+| Toggle autocomplete             | Turns only the completions while typing on or off  |
+| Suggest follow-up now           | Generates a follow-up suggestion now, even when the automatic one is off |
 
 ## Options
 
@@ -68,30 +69,32 @@ Pass options with the object form in `cli.json`:
       "package": "opencode-autosuggestions",
       "options": {
         "model": "openai/gpt-6-luna",
-        "typingDelay": 800
+        "autocompleteDelay": 800
       }
     }
   ]
 }
 ```
 
-| Option        | Default   | Description                                                                     |
-| ------------- | --------- | ------------------------------------------------------------------------------- |
-| `enabled`     | `true`    | `false` disables the plugin entirely                                            |
-| `model`       | `"auto"`  | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`)          |
-| `typing`      | `true`    | Completions while typing                                                        |
-| `typingDelay` | `600`     | Milliseconds of pause before asking for a completion                            |
-| `acceptKey`   | `"tab"`   | Key that accepts a suggestion                                                   |
-| `dismissKey`  | `"escape"`| Key that dismisses a suggestion                                                 |
-| `maxMessages` | `8`       | Recent messages sent as context for next-prompt suggestions                     |
-| `maxChars`    | `6000`    | Character cap for that context                                                  |
+| Option              | Default    | Description                                                            |
+| ------------------- | ---------- | ---------------------------------------------------------------------- |
+| `enabled`           | `true`     | `false` disables the plugin entirely                                   |
+| `model`             | `"auto"`   | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`) |
+| `followUps`         | `true`     | Suggest the next prompt after each turn                                |
+| `autocomplete`      | `true`     | Completions while typing                                               |
+| `autocompleteDelay` | `600`      | Milliseconds of pause before asking for a completion                   |
+| `acceptKey`         | `"tab"`    | Key that accepts a suggestion                                          |
+| `dismissKey`        | `"escape"` | Key that dismisses a suggestion                                        |
+| `maxMessages`       | `8`        | Recent messages sent as context for follow-up suggestions              |
+| `maxChars`          | `6000`     | Character cap for that context                                         |
 
-A model picked from the palette overrides the `model` option.
+A model picked from the palette overrides the `model` option. Setting `followUps` or `autocomplete` to `false` in
+`cli.json` turns that feature off regardless of the palette toggles.
 
 ## Cost
 
-Each suggestion is one short model call: one per finished turn, and one per pause while typing. Turn off
-**suggestions while typing** if you want fewer calls.
+Each suggestion is one short model call: one per finished turn, and one per pause while typing. To make fewer calls,
+turn either one off with `"followUps": false` or `"autocomplete": false`, or from the command palette.
 
 ## How it works
 
