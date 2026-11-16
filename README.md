@@ -2,6 +2,8 @@
 
 Copilot-style prompt autosuggestions for the [OpenCode](https://opencode.ai) TUI.
 
+![opencode-autosuggestions demo: autocomplete while typing, then follow-up suggestions after each turn](https://raw.githubusercontent.com/fedeya/opencode-autosuggestions/main/assets/demo.gif)
+
 - **Follow-ups:** when a turn finishes, a cheap model reads the last few messages and suggests what you will probably
   type next, as ghost text in the empty prompt.
 - **Autocomplete:** pause while typing and it suggests how to finish your message, right after the cursor.
