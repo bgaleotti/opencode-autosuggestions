@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "opencode-autosuggestions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Copilot-style prompt autosuggestions for the OpenCode TUI: the likely next prompt after each turn, and completions while you type",
   "keywords": [
     "opencode",
@@ -12,6 +12,14 @@
   ],
   "author": "Federico Minaya <hello@fedeminaya.com>",
   "license": "MIT",
+  "homepage": "https://github.com/fedeya/opencode-autosuggestions#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fedeya/opencode-autosuggestions.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fedeya/opencode-autosuggestions/issues"
+  },
   "type": "module",
   "exports": {
     "./tui": "./dist/tui.js"
