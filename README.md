@@ -8,17 +8,6 @@ Copilot-style prompt autosuggestions for the [OpenCode](https://opencode.ai) TUI
   type next, as ghost text in the empty prompt.
 - **Autocomplete:** pause while typing and it suggests how to finish your message, right after the cursor.
 
-```
-┃  Want me to add tests for this file?
-┃
-┃  yes, add them  ⇥ tab
-```
-
-```
-┃  sure but use pyt est for the tests
-                   └── ghost text
-```
-
 **Tab** accepts, **Esc** dismisses, and typing keeps going as usual. **Enter** only ever sends what you typed.
 
 Suggestions follow your language and tone: they are written the way you write in the conversation, and completions
