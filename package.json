@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "opencode-autosuggestions",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Copilot-style prompt autosuggestions for the OpenCode TUI: the likely next prompt after each turn, and completions while you type",
   "keywords": [
     "opencode",
@@ -32,7 +32,11 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "prepack": "bun run build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "check": "tsc --noEmit && biome check . && bun test"
   },
   "dependencies": {
     "@opencode/plugin": "^2.3.0"
@@ -43,9 +47,11 @@
     "solid-js": ">=1.9.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "@opencode/client": "^2.3.0",
     "@opentui/core": "^0.9.2",
     "@opentui/solid": "^0.9.2",
-    "@types/bun": "latest",
+    "@types/bun": "^1.4.4",
     "solid-js": "^1.9.19",
     "typescript": "^5.9.0"
   }

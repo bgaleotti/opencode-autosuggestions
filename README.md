@@ -39,15 +39,15 @@ To pick a model yourself, press `Ctrl+P` and run **Choose suggestion model**. Th
 
 ## Commands
 
-All in the command palette (`Ctrl+P`):
+All under "Autosuggestions" in the command palette (`Ctrl+P`):
 
-| Command                         | What it does                                       |
-| ------------------------------- | -------------------------------------------------- |
-| Choose suggestion model         | Auto, or any model you have                        |
-| Toggle suggested prompts        | Turns the plugin on or off                         |
-| Toggle follow-up suggestions    | Turns only the suggestion after each turn on or off |
-| Toggle autocomplete             | Turns only the completions while typing on or off  |
-| Suggest follow-up now           | Generates a follow-up suggestion now, even when the automatic one is off |
+| Command                      | What it does                                                         |
+| ---------------------------- | -------------------------------------------------------------------- |
+| Choose suggestion model      | Auto, or any model you have                                          |
+| Toggle autosuggestions       | Turns the plugin on or off                                           |
+| Toggle follow-up suggestions | Turns only the suggestion after each turn on or off                  |
+| Toggle autocomplete          | Turns only the completions while typing on or off                    |
+| Suggest follow-up now        | Generates a follow-up now, even when automatic follow-ups are off    |
 
 ## Options
 
@@ -67,17 +67,18 @@ Pass options with the object form in `cli.json`:
 }
 ```
 
-| Option              | Default    | Description                                                            |
-| ------------------- | ---------- | ---------------------------------------------------------------------- |
-| `enabled`           | `true`     | `false` disables the plugin entirely                                   |
-| `model`             | `"auto"`   | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`) |
-| `followUps`         | `true`     | Suggest the next prompt after each turn                                |
-| `autocomplete`      | `true`     | Completions while typing                                               |
-| `autocompleteDelay` | `600`      | Milliseconds of pause before asking for a completion                   |
-| `acceptKey`         | `"tab"`    | Key that accepts a suggestion                                          |
-| `dismissKey`        | `"escape"` | Key that dismisses a suggestion                                        |
-| `maxMessages`       | `8`        | Recent messages sent as context for follow-up suggestions              |
-| `maxChars`          | `6000`     | Character cap for that context                                         |
+| Option              | Default    | Description                                                                                   |
+| ------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| `enabled`           | `true`     | `false` disables the plugin entirely                                                          |
+| `model`             | `"auto"`   | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`)                        |
+| `followUps`         | `true`     | Suggest the next prompt after each turn                                                       |
+| `autocomplete`      | `true`     | Completions while typing                                                                      |
+| `autocompleteDelay` | `600`      | Milliseconds of pause before asking for a completion                                          |
+| `acceptKey`         | `"tab"`    | Key that accepts a suggestion                                                                 |
+| `dismissKey`        | `"escape"` | Key that dismisses a suggestion                                                               |
+| `maxMessages`       | `8`        | Recent messages sent as context for follow-up suggestions                                     |
+| `maxChars`          | `6000`     | Character cap for that context                                                                |
+| `debug`             | `false`    | Writes failed suggestion calls to `opencode-autosuggestions.log` in the system temp directory |
 
 A model picked from the palette overrides the `model` option. Setting `followUps` or `autocomplete` to `false` in
 `cli.json` turns that feature off regardless of the palette toggles.
@@ -99,8 +100,11 @@ working.
 
 ```sh
 bun install
+bun run check   # types, lint, and tests
 bun run build
 ```
+
+The code that depends on OpenCode internals is in `src/host.ts`; the rest is plain logic with tests in `test/`.
 
 Point `cli.json` at your checkout to try it:
 

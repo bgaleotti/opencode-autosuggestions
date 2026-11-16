@@ -1,12 +1,12 @@
-import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
 import { runtimeModuleIdForSpecifier } from "@opentui/core/runtime-plugin"
+import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
 
 // Compile before publishing: OpenCode's Solid source transform skips node_modules.
 // Shared runtime imports keep the plugin's signals and renderables in the host.
 const shared = new Set(["@opencode/plugin/tui", "@opentui/core", "@opentui/solid", "solid-js", "solid-js/store"])
 
 const result = await Bun.build({
-  entrypoints: ["./src/tui.tsx"],
+  entrypoints: ["./src/tui.ts"],
   outdir: "./dist",
   target: "bun",
   format: "esm",
