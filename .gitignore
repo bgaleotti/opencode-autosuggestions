@@ -3,3 +3,5 @@ dist
 eval/results
 packages/opencode/README.md
 packages/opencode/LICENSE
+packages/pi/README.md
+packages/pi/LICENSE
