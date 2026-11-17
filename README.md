@@ -120,7 +120,7 @@ bun run check   # types, lint, and tests
 bun run build
 ```
 
-The code that depends on OpenCode internals is in `src/host.ts`; the rest is plain logic with tests in `test/`.
+The OpenCode plugin is in `packages/opencode/`. Shared prompts, model selection, and text parsing are in `packages/core/`.
 
 ### Prompt evals
 
@@ -129,7 +129,7 @@ instead of guessed. It calls models through your local OpenCode service, so it u
 
 ```sh
 bun run eval before --samples 2   # save a run with the current prompts
-# change src/prompts.ts
+# change packages/core/src/prompts.ts
 bun run eval after --samples 2
 bun run eval:compare before after # summary, and every suggestion side by side
 ```
@@ -138,7 +138,7 @@ Results go to `eval/results/`, which is not committed.
 
 ### Releasing
 
-1. Bump `version` in `package.json` and add its section to `CHANGELOG.md`.
+1. Bump `version` in `packages/opencode/package.json` and add its section to `CHANGELOG.md`.
 2. Commit, then push a matching tag: `git tag v0.1.5 && git push origin v0.1.5`.
 
 The release workflow runs the checks, publishes to npm, and creates the GitHub release with the CHANGELOG section as
@@ -148,7 +148,7 @@ Point `cli.json` at your checkout to try it:
 
 ```json
 {
-  "plugins": ["/path/to/opencode-autosuggestions"]
+  "plugins": ["/path/to/opencode-autosuggestions/packages/opencode"]
 }
 ```
 
