@@ -35,7 +35,7 @@
       },
     },
     "packages/pi": {
-      "name": "pi-prompt-autosuggestions",
+      "name": "pi-ai-autosuggestions",
       "version": "0.1.0",
       "devDependencies": {
         "@autosuggestions/core": "workspace:*",
@@ -708,7 +708,7 @@
 
     "path-scurry": ["path-scurry@1.11.1", "", { "dependencies": { "lru-cache": "^10.2.0", "minipass": "^5.0.0 || ^6.0.2 || ^7.0.0" } }, "sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA=="],
 
-    "pi-prompt-autosuggestions": ["pi-prompt-autosuggestions@workspace:packages/pi"],
+    "pi-ai-autosuggestions": ["pi-ai-autosuggestions@workspace:packages/pi"],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 

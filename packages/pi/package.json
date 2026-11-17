@@ -1,5 +1,5 @@
 {
-  "name": "pi-prompt-autosuggestions",
+  "name": "pi-ai-autosuggestions",
   "version": "0.1.0",
   "description": "Copilot-style prompt autosuggestions for the Pi terminal UI",
   "license": "MIT",

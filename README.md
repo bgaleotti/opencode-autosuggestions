@@ -31,7 +31,7 @@ bun run build
 pi install "$PWD/packages/pi"
 ```
 
-Try it for one run with `pi -e "$PWD/packages/pi"`. The Pi package is not published yet.
+Try it for one run with `pi -e "$PWD/packages/pi"`. `pi-ai-autosuggestions` is not published on npm yet.
 
 Pi provides both inline completions and follow-ups, with the same accept and dismiss keys. It sends the draft
 and recent chat text to a model on your current provider using Pi's existing authentication. Use `/autosuggestions`
