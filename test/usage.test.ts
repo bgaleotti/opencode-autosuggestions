@@ -1,5 +1,15 @@
 import { describe, expect, test } from "bun:test"
-import { estimateTokens, formatUsage, localDate, recordCall, summarize, type UsageLog } from "../src/usage"
+import {
+  estimateTokens,
+  formatCost,
+  formatCount,
+  formatTokens,
+  localDate,
+  recordCall,
+  summarize,
+  type UsageLog,
+  usageReport,
+} from "../src/usage"
 
 const haiku = { providerID: "anthropic", id: "claude-haiku-5-5", variant: "none" }
 const luna = { providerID: "openai", id: "gpt-6-luna" }
@@ -81,16 +91,34 @@ describe("summarize and formatUsage", () => {
     expect(summarize(log).total.calls).toBe(3)
   })
 
-  test("formats today, the last week, and everything", () => {
-    const text = formatUsage(log, "2026-11-17")
-    expect(text).toContain("Today\n  2 calls · 202 tokens · <$0.01 + subscription")
-    expect(text).toContain("Last 7 days\n  2 calls")
-    expect(text).toContain("Since 2026-11-10\n  3 calls")
-    expect(text).toContain("  openai/gpt-6-luna · subscription\n    0 completions · 1 follow-up · 0 cancelled")
-    expect(text).toContain("Estimated from text length")
+  test("reports today, the last week, everything, and each model", () => {
+    const report = usageReport(log, "2026-11-17")
+    expect(report.periods.map((period) => [period.label, period.summary.calls])).toEqual([
+      ["Today", 2],
+      ["Last 7 days", 2],
+      ["Since Nov 10", 3],
+    ])
+    expect(report.models.map((entry) => entry.model)).toEqual(["anthropic/claude-haiku-5-5", "openai/gpt-6-luna"])
+  })
+})
+
+describe("formatting", () => {
+  test("shortens token counts", () => {
+    expect(formatTokens(950)).toBe("950")
+    expect(formatTokens(11_800)).toBe("11.8K")
+    expect(formatTokens(2_400_000)).toBe("2.4M")
   })
 
-  test("says when there were no calls", () => {
-    expect(formatUsage({ days: {} }, "2026-11-17")).toContain("Today\n  no calls")
+  test("uses the singular for one", () => {
+    expect(formatCount(1, "follow-up")).toBe("1 follow-up")
+    expect(formatCount(3, "follow-up")).toBe("3 follow-ups")
+  })
+
+  test("labels costs, subscriptions, and both", () => {
+    const base = { calls: 1, cancelled: 0, followUps: 0, completions: 1, inputTokens: 1, outputTokens: 1 }
+    expect(formatCost({ ...base, cost: 0.42, unpriced: false })).toBe("$0.42")
+    expect(formatCost({ ...base, cost: 0.001, unpriced: false })).toBe("<$0.01")
+    expect(formatCost({ ...base, cost: 0, unpriced: true })).toBe("subscription")
+    expect(formatCost({ ...base, cost: 0.42, unpriced: true })).toBe("$0.42 + sub")
   })
 })

@@ -27,7 +27,8 @@ import { completionPrompt, followUpPrompt } from "./prompts"
 import { fitSuggestion, isCompletable, parseCompletion, parseFollowUp, splitNextWord } from "./text"
 import { formatTranscript, lastAssistantModel } from "./transcript"
 import { endedCleanly } from "./turn"
-import { formatUsage, localDate, recordCall, type SuggestionKind, type UsageLog } from "./usage"
+import { localDate, recordCall, type SuggestionKind, type UsageLog, usageReport } from "./usage"
+import { showUsageDialog } from "./usage-dialog"
 
 // Two kinds of suggestions share one ghost-text layer:
 // - Follow-ups: after a turn, the likely next prompt, drawn in the empty prompt.
@@ -460,7 +461,7 @@ export default Plugin.define({
           title: "Show suggestion usage",
           group: "Autosuggestions",
           palette: true,
-          run: () => context.ui.dialog.alert({ title: "Suggestion usage", message: formatUsage(usage) }),
+          run: () => showUsageDialog(context, usageReport(usage)),
         },
         {
           id: "autosuggestions.followup.now",

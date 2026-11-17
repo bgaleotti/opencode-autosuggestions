@@ -117,54 +117,46 @@ export function summarize(log: UsageLog, from?: string) {
   return { total, models }
 }
 
-const tokens = (count: number) =>
-  count >= 1_000_000
-    ? `${(count / 1_000_000).toFixed(1)}M`
-    : count >= 1_000
-      ? `${(count / 1_000).toFixed(1)}K`
-      : String(count)
+export function formatTokens(count: number) {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
+  return String(count)
+}
 
-const count = (value: number, one: string, many = `${one}s`) => `${value} ${value === 1 ? one : many}`
+export function formatCount(value: number, one: string, many = `${one}s`) {
+  return `${value} ${value === 1 ? one : many}`
+}
 
-const dollars = (summary: Summary) => {
+/** "$0.42", "<$0.01", "subscription", or "$0.42 + sub" when priced and unpriced models are mixed. */
+export function formatCost(summary: Summary) {
   if (summary.cost === 0 && summary.unpriced) return "subscription"
-  const cost = summary.cost < 0.01 && summary.cost > 0 ? "<$0.01" : `$${summary.cost.toFixed(2)}`
-  return summary.unpriced ? `${cost} + subscription` : cost
+  const cost = summary.cost > 0 && summary.cost < 0.01 ? "<$0.01" : `$${summary.cost.toFixed(2)}`
+  return summary.unpriced ? `${cost} + sub` : cost
 }
 
-function line(summary: Summary) {
-  if (!summary.calls) return "  no calls"
-  return `  ${count(summary.calls, "call")} · ${tokens(summary.inputTokens + summary.outputTokens)} tokens · ${dollars(summary)}`
+export interface UsageReport {
+  readonly periods: readonly { readonly label: string; readonly summary: Summary }[]
+  /** The last 7 days per model, most calls first. */
+  readonly models: readonly { readonly model: string; readonly summary: Summary }[]
 }
 
-/** The text of the usage dialog. */
-export function formatUsage(log: UsageLog, today = localDate()) {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+/** The numbers for the usage dialog: today, the last 7 days, all days kept, and the last 7 days per model. */
+export function usageReport(log: UsageLog, today = localDate()): UsageReport {
   const week = new Date(`${today}T00:00:00`)
   week.setDate(week.getDate() - 6)
   const weekStart = localDate(week)
-  const first = Object.keys(log.days).sort()[0]
-  const lines = [
-    "Today",
-    line(summarize(log, today).total),
-    "Last 7 days",
-    line(summarize(log, weekStart).total),
-    `Since ${first ?? today}`,
-    line(summarize(log).total),
-  ]
-  const models = [...summarize(log, weekStart).models].sort((a, b) => b[1].calls - a[1].calls)
-  if (models.length) {
-    lines.push("", "Last 7 days by model")
-    for (const [model, summary] of models) {
-      lines.push(
-        `  ${model} · ${dollars(summary)}`,
-        `    ${count(summary.completions, "completion")} · ${count(summary.followUps, "follow-up")} · ${summary.cancelled} cancelled`,
-      )
-    }
+  const first = Object.keys(log.days).sort()[0] ?? today
+  const [, month, day] = first.split("-").map(Number)
+  return {
+    periods: [
+      { label: "Today", summary: summarize(log, today).total },
+      { label: "Last 7 days", summary: summarize(log, weekStart).total },
+      { label: `Since ${MONTHS[(month ?? 1) - 1]} ${day}`, summary: summarize(log).total },
+    ],
+    models: [...summarize(log, weekStart).models]
+      .map(([model, summary]) => ({ model, summary }))
+      .sort((a, b) => b.summary.calls - a.summary.calls),
   }
-  lines.push(
-    "",
-    `Estimated from text length (about ${CHARS_PER_TOKEN} characters`,
-    "per token) at list prices; subscriptions have no price.",
-  )
-  return lines.join("\n")
 }
