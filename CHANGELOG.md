@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.7
 
 - New **Show suggestion usage** command: a dialog with the calls, tokens, and cost of suggestions for today, the last
   7 days, and in total, and a bar per model. Tokens are estimated from text length and priced at list price, since OpenCode does not report
