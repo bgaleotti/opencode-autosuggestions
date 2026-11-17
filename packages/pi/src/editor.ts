@@ -1,8 +1,8 @@
 import { isCompletable, splitNextWord } from "@autosuggestions/core/text"
-import { CustomEditor, type KeybindingsManager } from "@earendil-works/pi-coding-agent"
 import {
   CURSOR_MARKER,
-  type EditorTheme,
+  type Editor,
+  type EditorComponent,
   matchesKey,
   renderFakeCursor,
   replaceControlCharacters,
@@ -12,6 +12,23 @@ import {
 } from "@earendil-works/pi-tui"
 
 type Suggest = (base: string, signal: AbortSignal) => Promise<string>
+type PromptEditor = EditorComponent &
+  Pick<Editor, "focused" | "getCursor" | "getLines" | "insertTextAtCursor" | "isShowingAutocomplete">
+
+// Pi extensions may load separate class identities. Detect the editor capabilities, not its constructor.
+export function supportsSuggestions(editor: EditorComponent): editor is PromptEditor {
+  return (
+    "focused" in editor &&
+    typeof editor.focused === "boolean" &&
+    "getCursor" in editor &&
+    typeof editor.getCursor === "function" &&
+    "getLines" in editor &&
+    typeof editor.getLines === "function" &&
+    typeof editor.insertTextAtCursor === "function" &&
+    "isShowingAutocomplete" in editor &&
+    typeof editor.isShowingAutocomplete === "function"
+  )
+}
 const cursor = CURSOR_MARKER + renderFakeCursor(" ")
 const graphemes = new Intl.Segmenter()
 
@@ -28,36 +45,35 @@ export function drawSuggestion(line: string, text: string, width: number) {
   return `${before}\x1b[2m${CURSOR_MARKER}${renderFakeCursor(first)}${visible.slice(first.length)}\x1b[22m`
 }
 
-export class SuggestionEditor extends CustomEditor {
+export class EditorSuggestions {
   private draft?: string
   private suggestion?: { base: string; rest: string }
   private timer?: ReturnType<typeof setTimeout>
   private request?: AbortController
 
   constructor(
-    private ui: TUI,
-    theme: EditorTheme,
-    keys: KeybindingsManager,
+    private editor: PromptEditor,
+    private ui: Pick<TUI, "requestRender">,
     private canSuggest: () => boolean,
     private suggest: Suggest,
   ) {
-    super(ui, theme, keys, { embedWorkingStatus: true })
+    const render = editor.render.bind(editor)
+    editor.render = (width) => this.render(render(width), width)
+    const handleInput = editor.handleInput.bind(editor)
+    editor.handleInput = (data) => {
+      if (!this.handleInput(data)) handleInput(data)
+    }
   }
 
   private active() {
-    const { line, col } = this.getCursor()
-    const lines = this.getLines()
-    return (
-      this.canSuggest() &&
-      this.focused &&
-      !this.isShowingAutocomplete() &&
-      line === lines.length - 1 &&
-      col === lines[line]?.length
-    )
+    if (!this.canSuggest() || !this.editor.focused || this.editor.isShowingAutocomplete()) return false
+    const { line, col } = this.editor.getCursor()
+    const lines = this.editor.getLines()
+    return line === lines.length - 1 && col === lines[line]?.length
   }
 
   private currentSuggestion() {
-    return this.active() && this.suggestion?.base === this.getText() ? this.suggestion : undefined
+    return this.active() && this.suggestion?.base === this.editor.getText() ? this.suggestion : undefined
   }
 
   private clear() {
@@ -73,7 +89,7 @@ export class SuggestionEditor extends CustomEditor {
   }
 
   followUp() {
-    if (!this.active() || this.getText() !== "") return
+    if (!this.active() || this.editor.getText() !== "") return
     this.clear()
     this.draft = ""
     void this.generate("")
@@ -84,7 +100,7 @@ export class SuggestionEditor extends CustomEditor {
     this.request = request
     try {
       const rest = await this.suggest(base, request.signal)
-      if (rest && !request.signal.aborted && this.active() && this.getText() === base) {
+      if (rest && !request.signal.aborted && this.active() && this.editor.getText() === base) {
         this.suggestion = { base, rest: replaceControlCharacters(rest) }
         this.ui.requestRender()
       }
@@ -95,36 +111,35 @@ export class SuggestionEditor extends CustomEditor {
     }
   }
 
-  override handleInput(data: string) {
+  private handleInput(data: string) {
     const suggestion = this.currentSuggestion()
     if (suggestion) {
       if (matchesKey(data, "escape")) {
         this.clear()
-        return
+        return true
       }
       const wordOnly = matchesKey(data, "alt+right") || matchesKey(data, "alt+f") || matchesKey(data, "ctrl+right")
       if (wordOnly || matchesKey(data, "tab")) {
         const { word, rest } = wordOnly ? splitNextWord(suggestion.rest) : { word: suggestion.rest, rest: "" }
-        this.insertTextAtCursor(word)
-        const base = this.getText()
+        this.editor.insertTextAtCursor(word)
+        const base = this.editor.getText()
         this.draft = base
         this.suggestion = rest ? { base, rest } : undefined
-        return
+        return true
       }
     }
-    super.handleInput(data)
+    return false
   }
 
-  override render(width: number) {
-    const lines = super.render(width)
-    const draft = this.active() ? this.getText() : undefined
+  private render(lines: string[], width: number) {
+    const draft = this.active() ? this.editor.getText() : undefined
     // Observe programmatic edits and cursor moves as well as typing, without replacing Pi's onChange callback.
     if (draft !== this.draft) {
       this.clear()
       this.draft = draft
       if (draft !== undefined && isCompletable(draft.trimStart())) {
         this.timer = setTimeout(() => {
-          if (this.active() && this.getText() === draft) void this.generate(draft)
+          if (this.active() && this.editor.getText() === draft) void this.generate(draft)
         }, 600)
       }
     }

@@ -35,7 +35,8 @@ Try it for one run with `pi -e "$PWD/packages/pi"`. The Pi package is not publis
 
 Pi provides both inline completions and follow-ups, with the same accept and dismiss keys. It sends the draft
 and recent chat text to a model on your current provider using Pi's existing authentication. Use `/autosuggestions`
-to toggle it for the current run. It skips setup if another extension already owns the editor. The options,
+to toggle it for the current run. It also works with previously loaded custom editors based on Pi's `CustomEditor`.
+If Pi asks for project trust, review the project settings before approving. The options,
 palette commands, and usage report below are OpenCode-only.
 
 ## Install in OpenCode

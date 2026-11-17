@@ -2,8 +2,8 @@ import { AUTO, pickModels } from "@autosuggestions/core/models"
 import { completionPrompt, followUpPrompt } from "@autosuggestions/core/prompts"
 import { clip, clipEnd, parseCompletion, parseFollowUp } from "@autosuggestions/core/text"
 import type { Api, Model } from "@earendil-works/pi-ai"
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent"
-import { SuggestionEditor } from "./editor"
+import { CustomEditor, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent"
+import { EditorSuggestions, supportsSuggestions } from "./editor"
 
 type Messages = ReturnType<ExtensionContext["sessionManager"]["buildSessionProjection"]>["messages"]
 type EditorFactory = NonNullable<Parameters<ExtensionContext["ui"]["setEditorComponent"]>[0]>
@@ -72,8 +72,9 @@ async function suggest(ctx: ExtensionContext, base: string, signal: AbortSignal)
 }
 
 export default function autosuggestions(pi: ExtensionAPI) {
-  let editor: SuggestionEditor | undefined
+  let editor: EditorSuggestions | undefined
   let factory: EditorFactory | undefined
+  let previousFactory: EditorFactory | undefined
   let enabled = true
   let waiting = false
 
@@ -83,20 +84,22 @@ export default function autosuggestions(pi: ExtensionAPI) {
     waiting = false
     if (!ctx.hasUI) return
     const existing = ctx.ui.getEditorComponent()
-    if (existing && existing !== factory) {
-      ctx.ui.notify("Autosuggestions skipped: another extension owns the editor", "warning")
-      return
-    }
+    if (existing !== factory) previousFactory = existing
+    const previous = previousFactory
     factory = (tui, theme, keys) => {
-      const instance: SuggestionEditor = new SuggestionEditor(
+      const base = previous?.(tui, theme, keys) ?? new CustomEditor(tui, theme, keys, { embedWorkingStatus: true })
+      if (!supportsSuggestions(base)) {
+        ctx.ui.notify("Autosuggestions skipped: the custom editor is incompatible", "warning")
+        return base
+      }
+      const instance: EditorSuggestions = new EditorSuggestions(
+        base,
         tui,
-        theme,
-        keys,
         () => editor === instance && enabled && !waiting && ctx.isIdle() && !ctx.hasPendingMessages(),
         (base, signal) => suggest(ctx, base, signal),
       )
       editor = instance
-      return instance
+      return base
     }
     ctx.ui.setEditorComponent(factory)
   })
