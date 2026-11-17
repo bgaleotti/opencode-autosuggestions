@@ -49,9 +49,12 @@ export function recordCall(log: UsageLog, call: Call) {
   const outputTokens = call.reply === undefined ? 0 : estimateTokens(call.reply)
   const tier = call.price?.[0]
   const model = `${call.model.providerID}/${call.model.id}`
-  const day = (log.days[call.date] ??= {})
-  const byKind = (day[model] ??= {})
-  const counts = (byKind[call.kind] ??= { calls: 0, cancelled: 0, inputTokens: 0, outputTokens: 0 })
+  const day = log.days[call.date] ?? {}
+  log.days[call.date] = day
+  const byKind = day[model] ?? {}
+  day[model] = byKind
+  const counts = byKind[call.kind] ?? { calls: 0, cancelled: 0, inputTokens: 0, outputTokens: 0 }
+  byKind[call.kind] = counts
   counts.calls += 1
   if (call.reply === undefined) counts.cancelled += 1
   counts.inputTokens += inputTokens
