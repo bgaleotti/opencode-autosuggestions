@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6
 
 - Accepting the next word also works with **Option+→** (Alt+→) and **Alt+F**, like fish. On macOS, Ctrl+→ is taken by
   Mission Control to switch desktops, and Ghostty sends Option+→ as Alt+F, so the old default never reached OpenCode
