@@ -49,7 +49,7 @@ export function UsageDialog(props: { context: Plugin.Context; report: UsageRepor
             const filled = Math.max(1, Math.round((entry.summary.calls / mostCalls) * BAR_WIDTH))
             const [provider, ...rest] = entry.model.split("/")
             return (
-              <box flexDirection="column" paddingTop={index() ? 1 : 0}>
+              <box flexDirection="column" paddingTop={1}>
                 <text fg={theme.text.base}>
                   <span style={{ fg: color(index()) }}>{"● "}</span>
                   {rest.join("/")}
