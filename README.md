@@ -56,6 +56,7 @@ All under "Autosuggestions" in the command palette (`Ctrl+P`):
 | Toggle follow-up suggestions | Turns only the suggestion after each turn on or off                  |
 | Toggle autocomplete          | Turns only the completions while typing on or off                    |
 | Suggest follow-up now        | Generates a follow-up now, even when automatic follow-ups are off    |
+| Show suggestion usage        | Calls, tokens, and estimated cost: today, last 7 days, and in total  |
 
 ## Options
 
@@ -97,6 +98,12 @@ A model picked from the palette overrides the `model` option. Setting `followUps
 Each suggestion is one short model call: one per finished turn, and one per pause while typing. A call is cancelled as
 soon as its result is no longer needed, for example when you keep typing or send a new prompt. To make fewer calls,
 turn either one off with `"followUps": false` or `"autocomplete": false`, or from the command palette.
+
+**Show suggestion usage** in the command palette shows how many calls the plugin made, their tokens, and their cost,
+for today, the last 7 days, and in total, per model. OpenCode does not report token counts for these calls, so they
+are estimated from text length (about 4 characters per token) and priced at the model's list price. Subscriptions
+have no price, so only calls and tokens are shown for them. Cancelled calls count the prompt they sent. The last 90
+days are kept.
 
 ## How it works
 

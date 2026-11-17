@@ -19,6 +19,7 @@ import {
   modelLabel,
   pickModels,
   refKey,
+  sameModel,
 } from "./models"
 import { resolveOptions } from "./options"
 import { createOverlay } from "./overlay"
@@ -26,6 +27,7 @@ import { completionPrompt, followUpPrompt } from "./prompts"
 import { fitSuggestion, isCompletable, parseCompletion, parseFollowUp, splitNextWord } from "./text"
 import { formatTranscript, lastAssistantModel } from "./transcript"
 import { endedCleanly } from "./turn"
+import { formatUsage, localDate, recordCall, type SuggestionKind, type UsageLog } from "./usage"
 
 // Two kinds of suggestions share one ghost-text layer:
 // - Follow-ups: after a turn, the likely next prompt, drawn in the empty prompt.
@@ -60,6 +62,7 @@ export default Plugin.define({
     const [settings, updateSettings] = context.storage.store("settings", {
       initial: { enabled: true, model: "", followUps: true, autocomplete: true },
     })
+    const [usage, updateUsage] = context.storage.store<UsageLog>("usage", { initial: { days: {} } })
     const modelChoice = () => settings.model || options.model || AUTO
     const followUpsOn = () => options.followUps && settings.followUps !== false
     const autocompleteOn = () => options.autocomplete && settings.autocomplete !== false
@@ -100,7 +103,12 @@ export default Plugin.define({
     }
 
     /** Runs `prompt` on the first model and level that works. Undefined when all fail or `signal` aborts. */
-    const generateText = async (prompt: string, sessionID: string | undefined, signal: AbortSignal) => {
+    const generateText = async (
+      prompt: string,
+      sessionID: string | undefined,
+      signal: AbortSignal,
+      kind: SuggestionKind,
+    ) => {
       const available = await availableModels(sessionID)
       if (signal.aborted) return
       const choice = modelChoice()
@@ -109,12 +117,19 @@ export default Plugin.define({
       const cached = working.get(cacheKey)
       const refs = [...(cached ? [cached] : []), ...attempts(candidates, choice)]
       for (const ref of refs.filter((ref) => !rejected.has(refKey(ref)))) {
+        // Failed calls are not counted: the provider rejected them before generating anything.
+        const record = (reply?: string) =>
+          void updateUsage((draft) => {
+            const price = available.find((model) => sameModel(model, ref))?.cost
+            recordCall(draft, { date: localDate(), model: ref, kind, prompt, reply, price })
+          })
         try {
           const { text } = await context.client.experimental.generate.text({ prompt, model: ref }, { signal })
           working.set(cacheKey, ref)
+          record(text)
           return text
         } catch (error) {
-          if (signal.aborted) return
+          if (signal.aborted) return record()
           log(`${refKey(ref)} failed:`, error)
           if (isSettingsError(error)) rejected.add(refKey(ref))
         }
@@ -161,7 +176,7 @@ export default Plugin.define({
         if (automatic && waitingOnUser(sessionID)) return log("no follow-up: waiting on the user already")
         const conversation = formatTranscript(messages, { ...options, directory: locationOf(sessionID).directory })
         if (!conversation || call.signal.aborted) return
-        const raw = await generateText(followUpPrompt(conversation), sessionID, call.signal)
+        const raw = await generateText(followUpPrompt(conversation), sessionID, call.signal, "followUp")
         if (raw === undefined || call.signal.aborted) return
         const text = parseFollowUp(raw)
         if (text) followUps.set(sessionID, { text, dismissed: false })
@@ -204,7 +219,7 @@ export default Plugin.define({
           maxMessages: COMPLETION_CONTEXT_MESSAGES,
           directory: locationOf(sessionID).directory,
         })
-        const raw = await generateText(completionPrompt(conversation, text), sessionID, call.signal)
+        const raw = await generateText(completionPrompt(conversation, text), sessionID, call.signal, "completion")
         if (raw === undefined || call.signal.aborted || promptText !== text) return
         const rest = parseCompletion(text, raw)
         if (rest) setCompletion({ base: text, rest })
@@ -439,6 +454,13 @@ export default Plugin.define({
             const picked = available.find((model) => `${model.providerID}/${model.id}` === value)
             toast(`Suggestions use ${value === AUTO ? "Auto" : (picked?.name ?? value)}`)
           },
+        },
+        {
+          id: "autosuggestions.usage",
+          title: "Show suggestion usage",
+          group: "Autosuggestions",
+          palette: true,
+          run: () => context.ui.dialog.alert({ title: "Suggestion usage", message: formatUsage(usage) }),
         },
         {
           id: "autosuggestions.followup.now",
