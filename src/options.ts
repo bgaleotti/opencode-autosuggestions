@@ -21,7 +21,7 @@ export const DEFAULT_OPTIONS: Options = {
   autocomplete: true,
   autocompleteDelay: 600,
   acceptKey: "tab",
-  acceptWordKey: "ctrl+right",
+  acceptWordKey: "alt+right,ctrl+right",
   dismissKey: "escape",
   maxMessages: 8,
   maxChars: 6000,

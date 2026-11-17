@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Accepting the next word also works with **Option+→** (Alt+→), now the first default. On macOS, Ctrl+→ is taken by
+  Mission Control to switch desktops, so it never reached OpenCode.
+
 ## 0.1.5
 
 - Accept a suggestion one word at a time with **Ctrl+→** (option `acceptWordKey`). The rest stays as ghost text.

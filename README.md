@@ -8,8 +8,9 @@ Copilot-style prompt autosuggestions for the [OpenCode](https://opencode.ai) TUI
   type next, as ghost text in the empty prompt.
 - **Autocomplete:** pause while typing and it suggests how to finish your message, right after the cursor.
 
-**Tab** accepts, **Ctrl+→** accepts the next word, **Esc** dismisses, and typing keeps going as usual. **Enter** only
-ever sends what you typed.
+**Tab** accepts, **Option+→** (Alt+→) or **Ctrl+→** accepts the next word, **Esc** dismisses, and typing keeps going
+as usual. **Enter** only ever sends what you typed. On macOS, Ctrl+→ switches desktops unless that Mission Control
+shortcut is turned off, so use Option+→.
 
 Follow-ups only appear after a turn that ended normally: not after an error, and not while a queued prompt,
 permission request, or question is waiting for you.
@@ -71,19 +72,19 @@ Pass options with the object form in `cli.json`:
 }
 ```
 
-| Option              | Default        | Description                                                                                   |
-| ------------------- | -------------- | --------------------------------------------------------------------------------------------- |
-| `enabled`           | `true`         | `false` disables the plugin entirely                                                          |
-| `model`             | `"auto"`       | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`)                        |
-| `followUps`         | `true`         | Suggest the next prompt after each turn                                                       |
-| `autocomplete`      | `true`         | Completions while typing                                                                      |
-| `autocompleteDelay` | `600`          | Milliseconds of pause before asking for a completion                                          |
-| `acceptKey`         | `"tab"`        | Key that accepts a suggestion                                                                 |
-| `acceptWordKey`     | `"ctrl+right"` | Key that accepts the next word of a suggestion                                                |
-| `dismissKey`        | `"escape"`     | Key that dismisses a suggestion                                                               |
-| `maxMessages`       | `8`            | Recent messages sent as context for follow-up suggestions                                     |
-| `maxChars`          | `6000`         | Character cap for that context                                                                |
-| `debug`             | `false`        | Writes failed suggestion calls to `opencode-autosuggestions.log` in the system temp directory |
+| Option              | Default                  | Description                                                                                   |
+| ------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
+| `enabled`           | `true`                   | `false` disables the plugin entirely                                                          |
+| `model`             | `"auto"`                 | `provider/model`, optionally `#variant` (e.g. `openai/gpt-6-luna#low`)                        |
+| `followUps`         | `true`                   | Suggest the next prompt after each turn                                                       |
+| `autocomplete`      | `true`                   | Completions while typing                                                                      |
+| `autocompleteDelay` | `600`                    | Milliseconds of pause before asking for a completion                                          |
+| `acceptKey`         | `"tab"`                  | Key that accepts a suggestion                                                                 |
+| `acceptWordKey`     | `"alt+right,ctrl+right"` | Keys that accept the next word of a suggestion, separated by commas                           |
+| `dismissKey`        | `"escape"`               | Key that dismisses a suggestion                                                               |
+| `maxMessages`       | `8`                      | Recent messages sent as context for follow-up suggestions                                     |
+| `maxChars`          | `6000`                   | Character cap for that context                                                                |
+| `debug`             | `false`                  | Writes failed suggestion calls to `opencode-autosuggestions.log` in the system temp directory |
 
 A model picked from the palette overrides the `model` option. Setting `followUps` or `autocomplete` to `false` in
 `cli.json` turns that feature off regardless of the palette toggles.
